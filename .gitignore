@@ -1,0 +1,22 @@
+# Virtual environment
+venv/
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Vector store & local database
+chroma_db/
+*.sqlite3
+
+# Uploads cache (preserve directory)
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Project Documentation / Roadmaps (if you want it untracked)
+mentoros-build-roadmap.md
