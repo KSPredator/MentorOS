@@ -9,7 +9,7 @@ from typing import List, Optional
 import re
 from ingestion.parser import ParsedPage
 
-
+#return format
 @dataclass
 class DocumentChunk:
     """Represents a text chunk with citation and provenance metadata for Explainable AI."""
