@@ -42,7 +42,7 @@ class VectorStore:
         embedder: Optional[EmbeddingModel] = None,
     ):
         if chromadb is None:
-            raise ImportError("chromadb is required. Run `pip install chromadb`.")
+            raise ImportError("chromadb is required. Please install it using `pip install chromadb`.")
 
         self.persist_dir = Path(persist_dir)
         self.persist_dir.mkdir(parents=True, exist_ok=True)
