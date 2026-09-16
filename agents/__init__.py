@@ -1,4 +1,12 @@
 """
 MentorOS - Agents Module
-Contains multi-agent components: Planner Agent and Evaluation Agent.
+Multi-agent system: Planner Agent (routing) and Evaluation Agent (hallucination gating).
 """
+
+from agents.planner_agent import PlannerAgent, PlannerAction, PlanDecision
+
+__all__ = [
+    "PlannerAgent",
+    "PlannerAction",
+    "PlanDecision",
+]
