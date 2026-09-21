@@ -2,15 +2,6 @@
 CLI Test Script for Phase 3 (Baseline RAG).
 Runs end-to-end naive RAG loop (Retrieve -> Prompt -> Ollama -> Grounded Answer + Citation).
 
-Usage:
-    # 1. Ask a single question:
-    python llm/test_baseline_rag.py --query "What is engineering scientific software?"
-
-    # 2. Test grounded refusal behavior (out-of-domain question):
-    python llm/test_baseline_rag.py --query "Who won the 2024 FIFA World Cup?"
-
-    # 3. Run interactive chat loop:
-    python llm/test_baseline_rag.py --interactive
 """
 
 import argparse
