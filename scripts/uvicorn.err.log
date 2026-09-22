@@ -1,0 +1,7 @@
+INFO:     Started server process [7032]
+INFO:     Waiting for application startup.
+2026-09-22 20:25:55,463 [MentorOS.API] INFO: MentorOS API starting…
+2026-09-22 20:25:55,465 [MentorOS.API] INFO: DB ready at D:\MentorOS\data\mentoros.db
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-09-22 20:33:39,854 [MentorOS.ReflectionGenerator] WARNING: No topics found in memory store — returning empty reflection.
