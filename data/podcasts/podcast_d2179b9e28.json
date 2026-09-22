@@ -1,0 +1,31 @@
+{
+  "id": "podcast_d2179b9e28",
+  "title": "Deep Dive: RAG Architecture Quick Explainer",
+  "topic": "RAG Architecture Quick Explainer",
+  "created_at": 1790108644.2390206,
+  "total_duration_s": 13.22,
+  "turns": [
+    {
+      "speaker": "HOST",
+      "text": "Welcome back! Today we are discussing Retrieval Augmented Generation.",
+      "estimated_duration_s": 0.0,
+      "start_time_s": 0.0
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "Is RAG used to prevent hallucinations in large language models?",
+      "estimated_duration_s": 0.0,
+      "start_time_s": 0.0
+    },
+    {
+      "speaker": "HOST",
+      "text": "Yes, by grounding answers directly in retrieved document chunks!",
+      "estimated_duration_s": 0.0,
+      "start_time_s": 0.0
+    }
+  ],
+  "audio_filename": "podcast_d2179b9e28.mp3",
+  "sources": [
+    "test_lecture.pdf (p.1)"
+  ]
+}

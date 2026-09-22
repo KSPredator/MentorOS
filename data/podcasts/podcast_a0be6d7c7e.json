@@ -1,0 +1,41 @@
+{
+  "id": "podcast_a0be6d7c7e",
+  "title": "Deep Dive: Chapter 4: Vector Databases and Similarity Search",
+  "topic": "Chapter 4: Vector Databases and Similarity Search",
+  "created_at": 1790108695.1847138,
+  "total_duration_s": 66.53,
+  "turns": [
+    {
+      "speaker": "HOST",
+      "text": "Welcome back to MentorOS Deep Dive! Today we're diving into Chapter 4: Vector Databases and Similarity Search. At its core, vector databases are specialized storage systems designed to handle dense embeddings.",
+      "estimated_duration_s": 13.48,
+      "start_time_s": 0.0
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "Dense embeddings? That sounds technical. How exactly does a database store these vectors, and what is the main goal of using them for search?",
+      "estimated_duration_s": 10.43,
+      "start_time_s": 13.83
+    },
+    {
+      "speaker": "HOST",
+      "text": "Think of it this way: vector databases store those dense embeddings. The real power comes when they use specific methods, like cosine similarity or HNSW indexing, to retrieve relevant context incredibly fast.",
+      "estimated_duration_s": 13.91,
+      "start_time_s": 24.61
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "So, if we are searching, does that mean the database doesn't just look for exact matches, but instead measures how similar concepts are? And what is HNSW exactly?",
+      "estimated_duration_s": 12.17,
+      "start_time_s": 38.88
+    },
+    {
+      "speaker": "HOST",
+      "text": "Exactly! It’s about measuring similarity—using methods like cosine similarity to determine relevance. The indexing techniques, such as HNSW, are used specifically to make that retrieval process lightning fast when finding the most relevant context.",
+      "estimated_duration_s": 14.78,
+      "start_time_s": 51.4
+    }
+  ],
+  "audio_filename": "podcast_a0be6d7c7e.mp3",
+  "sources": []
+}
