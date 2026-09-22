@@ -130,6 +130,8 @@ class Orchestrator:
             "memory_updates": result.get("memory_updates", []),
             "quiz": result.get("quiz"),
             "podcast_script": result.get("podcast_script"),
+            "podcast_audio_url": result.get("podcast_audio_url"),
+            "podcast_audio_filename": result.get("podcast_audio_filename"),
             "memory_stats": result.get("memory_stats"),
             "is_refusal": result.get("is_refusal", False),
             "model_name": client.model_name,
@@ -155,7 +157,8 @@ class Orchestrator:
     # Handlers                                                            #
     # ------------------------------------------------------------------ #
 
-    def _handle_retrieve(self, message: str, session_id: str, emit: Emit) -> dict:
+    def _handle_retrieve(self, message: str, session_id: str, emit: Emit = None) -> dict:
+        _emit = emit or (lambda *args, **kwargs: None)
         rag = pipeline.get_rag()
 
         _emit("stage", {"stage": "retrieving"})
@@ -196,7 +199,7 @@ class Orchestrator:
             try:
                 for tok in rag.ollama_client.generate_stream(prompt=prompt, temperature=rag.temperature):
                     parts.append(tok)
-                    emit("token", {"delta": tok})
+                    _emit("token", {"delta": tok})
             except Exception:
                 # Fall back to non-streaming on any stream failure mid-way
                 if parts:
@@ -270,7 +273,8 @@ class Orchestrator:
             "memory_updates": memory_updates,
         }
 
-    def _handle_memory(self, session_id: str, emit: Emit) -> dict:
+    def _handle_memory(self, session_id: str, emit: Emit = None) -> dict:
+        _emit = emit or (lambda *args, **kwargs: None)
         _emit("stage", {"stage": "retrieving"})
         store = pipeline.get_memory_store(session_id)
         snapshot = store.export_snapshot()
@@ -316,7 +320,8 @@ class Orchestrator:
             "memory_updates": [],
         }
 
-    def _handle_quiz(self, message: str, emit: Emit) -> dict:
+    def _handle_quiz(self, message: str, emit: Emit = None) -> dict:
+        _emit = emit or (lambda *args, **kwargs: None)
         _emit("stage", {"stage": "retrieving"})
         rag = pipeline.get_rag()
         chunks = rag.vector_store.retrieve(message, k=rag.top_k)
@@ -379,7 +384,8 @@ class Orchestrator:
             "memory_updates": [],
         }
 
-    def _handle_podcast(self, message: str, emit: Emit) -> dict:
+    def _handle_podcast(self, message: str, emit: Emit = None) -> dict:
+        _emit = emit or (lambda *args, **kwargs: None)
         _emit("stage", {"stage": "retrieving"})
         rag = pipeline.get_rag()
         chunks = rag.vector_store.retrieve(message, k=rag.top_k)
@@ -439,7 +445,8 @@ class Orchestrator:
             "memory_updates": [],
         }
 
-    def _handle_general(self, message: str, emit: Emit) -> dict:
+    def _handle_general(self, message: str, emit: Emit = None) -> dict:
+        _emit = emit or (lambda *args, **kwargs: None)
         _emit("stage", {"stage": "generating"})
         client = pipeline.get_ollama()
         content = client.generate(

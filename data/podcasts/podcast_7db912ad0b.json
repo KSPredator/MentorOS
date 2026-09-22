@@ -1,0 +1,41 @@
+{
+  "id": "podcast_7db912ad0b",
+  "title": "Deep Dive: Chapter 4: Vector Databases and Similarity Search",
+  "topic": "Chapter 4: Vector Databases and Similarity Search",
+  "created_at": 1790110010.552362,
+  "total_duration_s": 67.84,
+  "turns": [
+    {
+      "speaker": "HOST",
+      "text": "Welcome back to MentorOS Deep Dive. Today we are diving into Chapter 4, focusing on Vector Databases and Similarity Search. Essentially, vector databases are the engine that allows us to handle complex data retrieval efficiently.",
+      "estimated_duration_s": 15.22,
+      "start_time_s": 0.0
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "That sounds powerful. So, if we're storing information in a vector database, what exactly is being stored? Is it just raw text?",
+      "estimated_duration_s": 9.57,
+      "start_time_s": 15.57
+    },
+    {
+      "speaker": "HOST",
+      "text": "Not exactly. Vector databases store dense embeddings. Think of an embedding as a numerical representation of the context, allowing the system to understand the meaning of the data. This is the foundation for fast retrieval.",
+      "estimated_duration_s": 15.22,
+      "start_time_s": 25.48
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "That makes sense—turning concepts into numbers. And how does the database actually use those embeddings to find what we need quickly?",
+      "estimated_duration_s": 9.13,
+      "start_time_s": 41.05
+    },
+    {
+      "speaker": "HOST",
+      "text": "It uses sophisticated methods for retrieval. Specifically, they employ either cosine similarity or HNSW indexing to retrieve relevant context very fast. These methods allow the system to measure how similar different vectors are and pinpoint the most relevant information.",
+      "estimated_duration_s": 16.96,
+      "start_time_s": 50.53
+    }
+  ],
+  "audio_filename": "podcast_7db912ad0b.mp3",
+  "sources": []
+}

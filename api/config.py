@@ -24,7 +24,8 @@ CHROMA_COLLECTION = "mentoros_collection"
 EVAL_THRESHOLD = 0.60
 
 # Uploads
-MAX_UPLOAD_MB = 20
+import os
+MAX_UPLOAD_MB = int(os.getenv("MENTOROS_MAX_UPLOAD_MB", "500"))
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
 
 # CORS — Vite dev server

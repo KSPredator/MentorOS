@@ -213,23 +213,39 @@ export default function PodcastModal({ isOpen, onClose, initialTopic = '', initi
               </div>
 
               {/* Dialogue Length Options */}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs text-slate-400">Turns:</span>
-                <div className="flex space-x-1.5">
-                  {[6, 8, 12].map(t => (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">
+                    Turns: <span className="font-bold text-indigo-400">{numTurns} turns</span>
+                  </span>
+                  <span className="text-slate-500 font-mono text-[11px]">
+                    ~{Math.round(numTurns * 18)}s ({Math.round((numTurns * 18) / 60 * 10) / 10} min)
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[6, 8, 12, 16, 20, 24].map((t) => (
                     <button
                       key={t}
                       onClick={() => setNumTurns(t)}
-                      className={`px-2.5 py-1 text-xs rounded-md border transition-all ${
+                      className={`px-2 py-0.5 text-xs rounded-md border transition-all ${
                         numTurns === t
                           ? 'bg-indigo-600 border-indigo-500 text-white font-medium'
                           : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      {t} turns
+                      {t}
                     </button>
                   ))}
                 </div>
+                <input
+                  type="range"
+                  min="4"
+                  max="30"
+                  step="2"
+                  value={numTurns}
+                  onChange={(e) => setNumTurns(parseInt(e.target.value, 10))}
+                  className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
               </div>
 
               {/* Generate Button */}

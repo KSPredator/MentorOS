@@ -1,0 +1,95 @@
+{
+  "id": "podcast_e74ecfb5bd",
+  "title": "Deep Dive: Generate a 2-voice podcast on my notes",
+  "topic": "Generate a 2-voice podcast on my notes",
+  "created_at": 1790112061.0786948,
+  "total_duration_s": 164.98,
+  "turns": [
+    {
+      "speaker": "HOST",
+      "text": "Welcome back to MentorOS Deep Dive! Today we are diving into how we actually teach these powerful AI models. It starts with generating sufficient instructions and data for them to learn effectively.",
+      "estimated_duration_s": 13.91,
+      "start_time_s": 0.0
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "That sounds complex. How do we start that process? Are we just feeding the model raw text, or is there a structured way to generate the necessary training material?",
+      "estimated_duration_s": 12.61,
+      "start_time_s": 14.26
+    },
+    {
+      "speaker": "HOST",
+      "text": "Exactly. The key is starting with a structured approach. For instruction generation, you can begin by listing topics, keywords, or instruction types you want in your dataset, and then generating instructions and corresponding responses for each item. This method helps ensure we cover the full use case.",
+      "estimated_duration_s": 20.43,
+      "start_time_s": 27.22
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "So, this process isn't just random data generation; it’s highly targeted instruction creation? And what about complex conversations?",
+      "estimated_duration_s": 7.83,
+      "start_time_s": 48.01
+    },
+    {
+      "speaker": "HOST",
+      "text": "Absolutely. We can see this in examples like training UltraChat or Alpaca, where authors generated hundreds of (instruction, response) pairs by using models to generate the necessary seeds. This ensures a diverse range of uses for the model.",
+      "estimated_duration_s": 16.52,
+      "start_time_s": 56.18
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "That makes sense. Beyond just generating instructions, what kinds of feedback and organizational elements are important when dealing with conversational data?",
+      "estimated_duration_s": 9.13,
+      "start_time_s": 73.05
+    },
+    {
+      "speaker": "HOST",
+      "text": "There are many critical elements in conversation organization. We need to consider things like extracting conversational feedback—like sentiment or complaints—and ensuring error correction happens within the dialogue flow.",
+      "estimated_duration_s": 12.17,
+      "start_time_s": 82.53
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "And on the technical side, what about optimizing the training dataset itself? Are there specific engineering techniques we use for the data?",
+      "estimated_duration_s": 9.57,
+      "start_time_s": 95.06
+    },
+    {
+      "speaker": "HOST",
+      "text": "Yes, there are! Dataset engineering involves several steps. We look at things like data annotation and curation, inspecting the data, and using techniques such as data augmentation and synthesis to expand our dataset.",
+      "estimated_duration_s": 14.35,
+      "start_time_s": 104.97
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "That connects back to model performance. When training these models, what about incorporating reasoning or complex steps?",
+      "estimated_duration_s": 7.39,
+      "start_time_s": 119.67
+    },
+    {
+      "speaker": "HOST",
+      "text": "We can incorporate advanced concepts like Chain-of-Thought, or CoT—which is essentially giving the model time to think—and we also manage resource considerations like CPU memory and bandwidth during that process.",
+      "estimated_duration_s": 13.04,
+      "start_time_s": 127.41
+    },
+    {
+      "speaker": "STUDENT",
+      "text": "So ultimately, by carefully engineering the data and focusing on these organizational and reasoning elements, we prepare the model to handle complex tasks, like summarization or translation?",
+      "estimated_duration_s": 11.74,
+      "start_time_s": 140.81
+    },
+    {
+      "speaker": "HOST",
+      "text": "Precisely. This careful approach ensures that the model is equipped to handle various tasks, such as question answering, summarization, and translation, making it a truly capable tool.",
+      "estimated_duration_s": 11.74,
+      "start_time_s": 152.9
+    }
+  ],
+  "audio_filename": "podcast_e74ecfb5bd.mp3",
+  "sources": [
+    "_OceanofPDF.com_AI_Engineering_Building_Applications_-_Chip_Huyen.pdf (p.174)",
+    "_OceanofPDF.com_AI_Engineering_Building_Applications_-_Chip_Huyen.pdf (p.178)",
+    "_OceanofPDF.com_AI_Engineering_Building_Applications_-_Chip_Huyen.pdf (p.942)",
+    "_OceanofPDF.com_AI_Engineering_Building_Applications_-_Chip_Huyen.pdf (p.901)",
+    "_OceanofPDF.com_AI_Engineering_Building_Applications_-_Chip_Huyen.pdf (p.742)"
+  ]
+}

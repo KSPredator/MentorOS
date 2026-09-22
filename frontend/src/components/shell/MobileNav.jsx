@@ -9,6 +9,7 @@ import {
   Plus,
   Sun,
   Moon,
+  Radio,
 } from 'lucide-react';
 import { useUI } from '../../stores/ui';
 import { useChat } from '../../stores/chat';
@@ -17,6 +18,7 @@ import Logo from '../ui/Logo';
 
 const TABS = [
   { to: '/', icon: MessageSquareText, label: 'Chat' },
+  { to: '/podcast', icon: Radio, label: 'Podcast' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dash' },
   { to: '/documents', icon: FolderOpen, label: 'Docs' },
   { to: '/settings', icon: Settings, label: 'Settings' },

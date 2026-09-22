@@ -8,9 +8,9 @@ import { useFiles } from '../../stores/files';
 
 const QUICK_STARTS = [
   'Summarize my uploaded notes',
-  'What are the key themes across my documents?',
+  'Generate a 2-voice podcast on my notes',
   'Quiz me on the hardest topic in my materials',
-  'Explain a concept I struggled with',
+  'What are the key themes across my documents?',
 ];
 
 /** Chat composer: auto-grow textarea, Enter to send, Shift+Enter newline, stop button while streaming. */

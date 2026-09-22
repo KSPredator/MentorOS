@@ -14,6 +14,12 @@ import os
 import sys
 from pathlib import Path
 
+# Force UTF-8 on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # Ensure project root is on the path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 

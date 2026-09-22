@@ -9,6 +9,7 @@ export const useUI = create(
       sidebarOpen: false, // mobile
       filePanelOpen: false, // mobile + desktop collapsible
       chunkModalId: null,
+      podcastModalOpen: false,
       confirmState: null, // { title, message, onConfirm }
 
       toggleDark: () => {
@@ -28,6 +29,9 @@ export const useUI = create(
 
       openChunk: (chunkId) => set({ chunkModalId: chunkId }),
       closeChunk: () => set({ chunkModalId: null }),
+
+      openPodcastModal: () => set({ podcastModalOpen: true }),
+      closePodcastModal: () => set({ podcastModalOpen: false }),
 
       confirm: (opts) => set({ confirmState: opts }),
       closeConfirm: () => set({ confirmState: null }),

@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Sun,
   Moon,
+  Radio,
 } from 'lucide-react';
 import { useChat } from '../../stores/chat';
 import { useUI } from '../../stores/ui';
@@ -25,6 +26,7 @@ import { toast } from 'sonner';
 
 const NAV = [
   { to: '/', icon: MessageSquareText, label: 'Chat' },
+  { to: '/podcast', icon: Radio, label: 'Podcast Studio' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/documents', icon: FolderOpen, label: 'Documents' },
   { to: '/settings', icon: Settings, label: 'Settings' },
@@ -76,15 +78,17 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="hidden md:flex flex-col w-[252px] flex-shrink-0 h-full glass-panel border-r border-border/80 z-10">
-      {/* Brand */}
-      <div className="flex items-center justify-between px-4 h-14 border-b border-border/70">
-        <Logo size="sm" />
+    <aside
+      className="w-64 h-full flex flex-col border-r border-border/80 bg-panel/80 backdrop-blur-xl flex-shrink-0 z-10"
+      aria-label="Sidebar"
+    >
+      {/* Brand / header */}
+      <div className="flex items-center justify-between h-14 px-3.5 border-b border-border/80">
+        <Logo size="md" />
         <div className="flex items-center gap-1">
           <button
             onClick={toggleDark}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={dark ? 'Switch to Light mode' : 'Switch to Dark mode'}
             className="p-1.5 rounded-lg text-textMuted hover:text-textMain hover:bg-panelHover transition-colors cursor-pointer"
           >
             {dark ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-sky-500" />}

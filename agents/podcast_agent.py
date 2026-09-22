@@ -128,7 +128,7 @@ class PodcastAgent:
         raw_output = self.ollama.generate(
             prompt=prompt,
             temperature=0.7,
-            max_tokens=1500,
+            max_tokens=max(1500, num_turns * 180),
         )
 
         turns = self._parse_dialogue(raw_output)

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { PanelRightOpen, Sparkles, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { PanelRightOpen, Sparkles, BookOpen, Radio } from 'lucide-react';
 import MessageList from '../components/chat/MessageList';
 import ChatInput from '../components/chat/ChatInput';
 import { useChat } from '../stores/chat';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 
 /** Main chat workspace: header + thread + composer. */
 export default function ChatPage() {
+  const navigate = useNavigate();
   const streaming = useChat((s) => s.streaming);
   const streamError = useChat((s) => s.streamError);
   const sessions = useChat((s) => s.sessions);
@@ -48,6 +50,16 @@ export default function ChatPage() {
           <Sparkles size={11} className="text-accent" />
           <span>{ollama ? 'ollama · local' : 'offline'}</span>
         </div>
+
+        {/* Podcast Studio button */}
+        <button
+          onClick={() => navigate('/podcast')}
+          aria-label="Open Podcast Studio"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-accent hover:text-accentDim bg-accentSoft/60 hover:bg-accentSoft border border-accent/25 transition-all text-xs font-medium cursor-pointer"
+        >
+          <Radio size={14} className="text-accent" />
+          <span className="text-[11.5px] font-semibold">Podcast Studio</span>
+        </button>
 
         {!filePanelOpen && (
           <button

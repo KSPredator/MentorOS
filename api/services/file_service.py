@@ -28,7 +28,7 @@ def _validate(filename: str, size_bytes: int) -> str:
             f"Unsupported file type '{ext}'. Allowed: {', '.join(sorted(config.ALLOWED_EXTENSIONS))}",
             status_code=415,
         )
-    if size_bytes > config.MAX_UPLOAD_MB * 1024 * 1024:
+    if config.MAX_UPLOAD_MB > 0 and size_bytes > config.MAX_UPLOAD_MB * 1024 * 1024:
         raise FileValidationError(
             f"File exceeds {config.MAX_UPLOAD_MB}MB limit.", status_code=413
         )

@@ -31,11 +31,16 @@ export default function AssistantMessage({ message }) {
   }
 
   if (type === 'podcast') {
+    const audioMatch =
+      message?.content?.match(/\[(?:Listen \/ Download MP3|Download MP3|Listen)\]\(([^)]+)\)/i) ||
+      message?.content?.match(/(\/api\/podcast\/audio\/[a-zA-Z0-9_\-\.]+)/i);
+    const audioUrl = meta.podcast_audio_url || meta.audio_url || (audioMatch ? audioMatch[1] : null);
+
     return (
       <div className="flex gap-3.5">
         <Avatar />
         <div className="min-w-0 flex-1">
-          <PodcastCard script={meta.podcast_script} />
+          <PodcastCard script={meta.podcast_script} audioUrl={audioUrl} />
         </div>
       </div>
     );

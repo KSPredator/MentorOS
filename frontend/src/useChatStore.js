@@ -52,26 +52,29 @@ export function useChatStore(sessionId) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        buffer = buffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
         const lines = buffer.split('\n');
         buffer = lines.pop(); // keep incomplete last line
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
+        for (const rawLine of lines) {
+          const line = rawLine.trim();
+          if (!line.startsWith('data:')) continue;
           try {
-            const evt = JSON.parse(line.slice(6));
+            const evt = JSON.parse(line.slice(5).trim());
 
-            if (evt.type === 'planner') {
+            if (evt.type === 'planner' || evt.stage === 'planning') {
               finalPlanner = evt;
               setPlannerInfo(evt);
-            } else if (evt.type === 'token') {
-              accumulated += evt.token;
+            } else if (evt.token || evt.delta) {
+              const tok = evt.token || evt.delta || '';
+              accumulated += tok;
               setStreamingText(accumulated);
               // Update the placeholder in-place
               setMessages(prev =>
                 prev.map(m => m.id === aiId ? { ...m, content: accumulated } : m)
               );
-            } else if (evt.type === 'done') {
+            } else if (evt.type === 'done' || evt.content) {
+              if (evt.content) accumulated = evt.content;
               // Streaming complete — mark message as non-streaming
               setMessages(prev =>
                 prev.map(m =>

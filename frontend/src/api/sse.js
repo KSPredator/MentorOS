@@ -80,6 +80,9 @@ export function streamAsk(body, handlers = {}) {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
+        // Normalize \r\n to \n so CRLF line breaks parse reliably across Windows / Uvicorn
+        buffer = buffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
         let sep;
         while ((sep = buffer.indexOf('\n\n')) !== -1) {
           const block = buffer.slice(0, sep);
@@ -87,11 +90,25 @@ export function streamAsk(body, handlers = {}) {
           let eventName = 'message';
           const dataLines = [];
           for (const line of block.split('\n')) {
-            if (line.startsWith('event:')) eventName = line.slice(6).trim();
-            else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+            const trimmed = line.trim();
+            if (trimmed.startsWith('event:')) eventName = trimmed.slice(6).trim();
+            else if (trimmed.startsWith('data:')) dataLines.push(trimmed.slice(5).trim());
           }
           if (dataLines.length) dispatch(eventName, dataLines.join('\n'));
         }
+      }
+
+      // Flush any trailing block left in buffer on stream completion
+      if (buffer && buffer.trim()) {
+        const block = buffer.trim();
+        let eventName = 'message';
+        const dataLines = [];
+        for (const line of block.split('\n')) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('event:')) eventName = trimmed.slice(6).trim();
+          else if (trimmed.startsWith('data:')) dataLines.push(trimmed.slice(5).trim());
+        }
+        if (dataLines.length) dispatch(eventName, dataLines.join('\n'));
       }
     } catch (e) {
       if (e.name !== 'AbortError') {

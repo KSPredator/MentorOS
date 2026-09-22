@@ -149,6 +149,8 @@ export const useChat = create((set, get) => ({
               memory_updates: d.memory_updates,
               quiz: d.quiz,
               podcast_script: d.podcast_script,
+              podcast_audio_url: d.podcast_audio_url || d.audio_url,
+              podcast_audio_filename: d.podcast_audio_filename,
               memory_stats: d.memory_stats,
               is_refusal: d.is_refusal,
               model_name: d.model_name,

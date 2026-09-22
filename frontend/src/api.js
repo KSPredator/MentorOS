@@ -3,7 +3,7 @@
  * All calls go to the FastAPI backend at http://localhost:8000.
  */
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 async function req(method, path, body, signal) {
   const opts = {
@@ -79,3 +79,14 @@ export const getWeakTopics = (sessionId = 'default', n = 5) =>
 // ── Reflection ────────────────────────────────────────────────────────────────
 export const getReflection = (sessionId = 'default') =>
   req('GET', `/reflection?session_id=${encodeURIComponent(sessionId)}`);
+
+// ── Podcast ───────────────────────────────────────────────────────────────────
+export const generatePodcast = (topic, context = null, numTurns = 8) =>
+  req('POST', '/api/podcast/generate', { topic, context, num_turns: numTurns });
+
+export const getPodcastList = () => req('GET', '/api/podcast/list');
+
+export const getPodcastDetails = (podcastId) => req('GET', `/api/podcast/${encodeURIComponent(podcastId)}`);
+
+export const getPodcastAudioUrl = (filename) => `${BASE_URL}/api/podcast/audio/${filename}`;
+
