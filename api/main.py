@@ -1,111 +1,75 @@
 """
-MentorOS FastAPI Application — Phase 9 Backend
-================================================
-Exposes the full MentorOS pipeline via REST API:
+MentorOS FastAPI application entrypoint (Phase 9 & Phase 12).
 
-  GET  /status           — Health check (Ollama, indexed docs)
-  POST /upload           — Ingest PDF/DOCX/PPTX into ChromaDB
-  POST /ask              — Planner-routed QA (JSON response)
-  POST /ask/stream       — Planner-routed QA (SSE streaming)
-  GET  /history          — Chat history for a session
-  DEL  /history          — Clear chat history for a session
-  GET  /memory           — Full learning memory snapshot
-  GET  /memory/weak      — Weak topics for a session
-  POST /memory/update    — Manually update topic confidence
-  DEL  /memory           — Reset session memory
-  GET  /reflection       — Generate session reflection report
-
-Run with:
-  python run_api.py
-  — or —
-  uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+Run:
+    python run_api.py
+    — or —
+    uvicorn api.main:app --reload --port 8000
 """
 
 import logging
-import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-# Ensure project root is on the path when running via `uvicorn api.main:app`
-_project_root = Path(__file__).resolve().parent.parent
-if str(_project_root) not in sys.path:
-    sys.path.insert(0, str(_project_root))
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from api.routes import ask, history, memory, reflection, status
+from api import config
+from api.db import init_db
+from agents.podcast_agent import PODCAST_STORAGE_DIR
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    stream=sys.stdout,
-)
 logger = logging.getLogger("MentorOS.API")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 
-# ──────────────────────────────────────────────
-# FastAPI app
-# ──────────────────────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup: init SQLite, ensure storage directories exist."""
+    logger.info("MentorOS API starting…")
+    init_db()
+    PODCAST_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info(f"DB ready at {config.DB_PATH}")
+    yield
+    logger.info("MentorOS API shutting down.")
+
 
 app = FastAPI(
-    title="MentorOS API",
-    description=(
-        "AI-powered study tutor backend. "
-        "Upload documents, ask questions, track learning progress, "
-        "and generate session reflections."
-    ),
-    version="1.0.0",
+    title=config.APP_TITLE,
+    version=config.API_VERSION,
+    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-# Allow all origins during development — tighten for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ──────────────────────────────────────────────
-# Routers
-# ──────────────────────────────────────────────
 
-app.include_router(status.router)
-app.include_router(ask.router)
-app.include_router(history.router)
-app.include_router(memory.router)
-app.include_router(reflection.router)
-
-# Upload router registered separately to keep multipart handling isolated
-from api.routes import upload as upload_module  # noqa: E402
-app.include_router(upload_module.router)
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error on {request.url.path}")
+    return JSONResponse(status_code=500, content={"detail": f"Internal server error: {exc}"})
 
 
-# ──────────────────────────────────────────────
-# Root redirect to docs
-# ──────────────────────────────────────────────
+# Routers (import after app creation to keep module load order clear)
+from api.routers import chat, files, memory, podcast, reflection, system  # noqa: E402
 
-@app.get("/", include_in_schema=False)
-def root():
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/docs")
-
-
-@app.on_event("startup")
-def startup_event():
-    logger.info("MentorOS API starting up...")
-    # Pre-warm the DB connection
-    from api.database import get_db
-    get_db()
-    logger.info("MentorOS API ready. Visit http://localhost:8000/docs")
+app.include_router(system.router, prefix="/api", tags=["system"])
+app.include_router(files.router, prefix="/api", tags=["files"])
+app.include_router(chat.router, prefix="/api", tags=["chat"])
+app.include_router(memory.router, prefix="/api", tags=["memory"])
+app.include_router(reflection.router, prefix="/api", tags=["reflection"])
+app.include_router(podcast.router, prefix="/api", tags=["podcast"])
+# Include root podcast router for backward compatibility
+app.include_router(podcast.router, tags=["podcast"])
 
 
-@app.on_event("shutdown")
-def shutdown_event():
-    from api.database import get_db
-    try:
-        get_db().close()
-    except Exception:
-        pass
-    logger.info("MentorOS API shut down.")
+@app.get("/")
+async def root():
+    return {"name": config.APP_TITLE, "version": config.API_VERSION, "docs": "/docs"}

@@ -1,35 +1,43 @@
 """
-Pydantic request/response schemas for the MentorOS FastAPI backend.
+Pydantic request/response models for MentorOS API (Phase 9 & Phase 12).
 """
 
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
-# ──────────────────────────────────────────────
-# /upload
-# ──────────────────────────────────────────────
-
-class UploadResponse(BaseModel):
-    filename: str
-    chunks_indexed: int
-    sources: List[str]
-    message: str
-
-
-# ──────────────────────────────────────────────
-# /ask
-# ──────────────────────────────────────────────
+# --------------------------------------------------------------------------- #
+# Requests
+# --------------------------------------------------------------------------- #
 
 class AskRequest(BaseModel):
-    question: str = Field(..., min_length=1, description="The student's question")
-    session_id: str = Field(default="default", description="Session identifier")
-    top_k: int = Field(default=5, ge=1, le=20, description="Number of chunks to retrieve")
-    eval_threshold: Optional[float] = Field(
-        default=None, ge=0.0, le=1.0,
-        description="Override hallucination gate threshold (default 0.60)"
-    )
+    message: str = Field(..., min_length=1, max_length=8000)
+    session_id: Optional[str] = None
 
+
+class RenameSessionRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+
+
+class ReflectionRequest(BaseModel):
+    session_id: str
+
+
+class QuizSubmitRequest(BaseModel):
+    session_id: str
+    message_id: int
+    answers: List[int]
+
+
+class PodcastGenerateRequest(BaseModel):
+    topic: str = Field(..., min_length=1)
+    context: Optional[str] = None
+    num_turns: Optional[int] = 8
+
+
+# --------------------------------------------------------------------------- #
+# Response fragments
+# --------------------------------------------------------------------------- #
 
 class CitationOut(BaseModel):
     source_file: str
@@ -38,11 +46,12 @@ class CitationOut(BaseModel):
     score: float
 
 
-class PlannerDecisionOut(BaseModel):
-    action: str
-    confidence: float
-    reasoning: str
-    route_method: str
+class RetrievedOut(BaseModel):
+    chunk_id: str
+    source_file: str
+    page_number: int
+    score: float
+    text_preview: str
 
 
 class EvaluationOut(BaseModel):
@@ -54,110 +63,104 @@ class EvaluationOut(BaseModel):
     threshold_used: float
 
 
+class MemoryUpdateOut(BaseModel):
+    topic: str
+    confidence: float
+
+
+class QuizQuestionOut(BaseModel):
+    question: str
+    options: List[str]
+    answer_idx: int
+    explanation: str
+
+
+class PodcastLineOut(BaseModel):
+    speaker: str  # HOST | STUDENT
+    line: str
+    estimated_duration_s: Optional[float] = 0.0
+    start_time_s: Optional[float] = 0.0
+
+
+class PodcastEpisodeResponse(BaseModel):
+    id: str
+    title: str
+    topic: str
+    created_at: float
+    total_duration_s: float
+    turns: List[Dict[str, Any]]
+    audio_filename: str
+    audio_url: str
+    sources: List[str] = []
+
+
 class AskResponse(BaseModel):
     session_id: str
-    question: str
-    answer: str
-    planner: PlannerDecisionOut
-    evaluation: Optional[EvaluationOut]
-    citations: List[CitationOut]
-    confidence_score: float
-    passed_gate: bool
-    is_refusal: bool
+    user_message_id: int
+    assistant_message_id: int
+    action: str
+    route_method: str
+    route_confidence: float
+    type: str  # answer | refusal | quiz | memory | podcast | general
+    content: str
+    citations: List[CitationOut] = []
+    retrieved: List[RetrievedOut] = []
+    evaluation: Optional[EvaluationOut] = None
     latency_seconds: float
     model_name: str
-    message_id: int
+    memory_updates: List[MemoryUpdateOut] = []
+    quiz: Optional[List[QuizQuestionOut]] = None
+    podcast_script: Optional[List[PodcastLineOut]] = None
+    podcast_audio_url: Optional[str] = None
+    podcast_audio_filename: Optional[str] = None
+    memory_stats: Optional[dict] = None
+    is_refusal: bool = False
 
 
-# ──────────────────────────────────────────────
-# /history
-# ──────────────────────────────────────────────
-
-class HistoryMessage(BaseModel):
-    id: int
-    session_id: str
-    role: str          # "user" or "assistant"
-    content: str
-    timestamp: str
-    metadata: Optional[Dict[str, Any]] = None
+class FileOut(BaseModel):
+    id: Optional[int] = None
+    filename: str
+    ext: str
+    size_bytes: int
+    status: str
+    chunk_count: int
+    error: Optional[str] = None
+    uploaded_at: Optional[str] = None
 
 
-class HistoryResponse(BaseModel):
-    session_id: str
-    messages: List[HistoryMessage]
-    count: int
+class ChunkOut(BaseModel):
+    chunk_id: str
+    text: str
+    source_file: str
+    page_number: int
+    chunk_index: int
+    score: Optional[float] = None
 
 
-class DeleteResponse(BaseModel):
-    session_id: str
-    deleted_count: int
-    message: str
-
-
-# ──────────────────────────────────────────────
-# /memory
-# ──────────────────────────────────────────────
-
-class TopicRecordOut(BaseModel):
-    topic: str
-    session_id: str
-    confidence: float
-    confidence_pct: str
-    mistake_count: int
-    interaction_count: int
-    last_seen: str
-
-
-class MemorySnapshotResponse(BaseModel):
-    session_id: str
-    exported_at: str
-    topic_count: int
-    topics: List[TopicRecordOut]
-    weak_topics: List[str]
-    strong_topics: List[str]
-
-
-class MemoryUpdateRequest(BaseModel):
-    session_id: str = "default"
-    topic: str
-    eval_confidence: Optional[float] = Field(
-        default=None, ge=0.0, le=1.0
-    )
-    made_mistake: bool = False
-    asked_simpler: bool = False
-
-
-class MemoryUpdateResponse(BaseModel):
-    topic: str
-    session_id: str
-    updated_record: TopicRecordOut
-
-
-# ──────────────────────────────────────────────
-# /reflection
-# ──────────────────────────────────────────────
-
-class ReflectionResponse(BaseModel):
-    session_id: str
-    generated_at: str
-    learned_well: List[str]
-    needs_revision: List[str]
-    recommended_session: str
-    full_summary: str
-    topic_count: int
-    strong_count: int
-    weak_count: int
-
-
-# ──────────────────────────────────────────────
-# /status
-# ──────────────────────────────────────────────
-
-class StatusResponse(BaseModel):
-    status: str               # "ok" or "degraded"
+class StatusOut(BaseModel):
     ollama_available: bool
-    ollama_model: str
-    available_models: List[str]
-    indexed_chunks: int
-    indexed_sources: List[str]
+    model_name: Optional[str]
+    pipeline_ready: bool
+    missing_packages: List[str] = []
+    vector_store_chunks: Optional[int] = None
+    files_indexed: int
+    eval_threshold: float
     api_version: str
+
+
+class QuizFeedbackItem(BaseModel):
+    correct: bool
+    your_answer: int
+    correct_idx: int
+    explanation: str
+
+
+class QuizSubmitResponse(BaseModel):
+    score: int
+    total: int
+    feedback: List[QuizFeedbackItem]
+
+
+class ErrorOut(BaseModel):
+    detail: str
+    extra: Optional[Any] = None

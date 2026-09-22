@@ -9,6 +9,7 @@ __pycache__/
 # Vector store & local database
 chroma_db/
 *.sqlite3
+*.db
 
 # Uploads cache (preserve directory)
 data/uploads/*

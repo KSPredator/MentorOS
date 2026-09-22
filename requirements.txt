@@ -1,0 +1,30 @@
+# ============================================================
+# MentorOS — Python dependencies
+# Phase 0 pipeline libs are listed for environment reproducibility.
+# Phase 9 API-layer libs are required by api/.
+# ============================================================
+
+# ---- Phase 0: Core pipeline (DO NOT modify versions if already installed) ----
+# langchain
+# langchain-community
+chromadb
+sentence-transformers
+pypdf
+python-docx
+python-pptx
+
+# ---- Phase 9: FastAPI backend ----
+fastapi
+uvicorn[standard]
+python-multipart
+aiofiles
+sse-starlette
+
+# ---- Phase 7 (optional): LoRA / QLoRA fine-tuning ----
+# peft
+# bitsandbytes
+# transformers
+# accelerate
+
+# ---- Phase 8 (optional): BERTScore evaluation ----
+# bert-score
