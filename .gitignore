@@ -21,3 +21,9 @@ frontend/dist/
 
 # Project Documentation / Roadmaps (if you want it untracked)
 mentoros-build-roadmap.md
+
+# IDEs & Bundler caches
+.idea/
+.vscode/
+.vite/
+frontend/.vite/
