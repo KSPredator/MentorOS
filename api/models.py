@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 class AskRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=8000)
     session_id: Optional[str] = None
+    course_id: Optional[str] = "default"
 
 
 class RenameSessionRequest(BaseModel):
@@ -44,6 +45,7 @@ class CitationOut(BaseModel):
     page_number: int
     chunk_id: str
     score: float
+    doc_slug: Optional[str] = None
 
 
 class RetrievedOut(BaseModel):
@@ -52,6 +54,7 @@ class RetrievedOut(BaseModel):
     page_number: int
     score: float
     text_preview: str
+    doc_slug: Optional[str] = None
 
 
 class EvaluationOut(BaseModel):
@@ -115,6 +118,53 @@ class AskResponse(BaseModel):
     podcast_audio_filename: Optional[str] = None
     memory_stats: Optional[dict] = None
     is_refusal: bool = False
+    path: Optional[str] = "rag"
+    trust_tier: Optional[str] = "unverified"
+    concept_ids: List[str] = []
+
+
+class CourseOut(BaseModel):
+    course_id: str
+    name: str
+    bundle_path: str
+    embed_model: str
+    created_at: str
+
+
+class ConceptOut(BaseModel):
+    concept_id: str
+    course_id: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    trust_tier: str
+    body: str
+    meta: Dict[str, Any] = {}
+    sources: List[str] = []
+    stale_after: Optional[str] = None
+    is_stale: bool = False
+
+
+class VerifyConceptRequest(BaseModel):
+    verifier_id: str = "human:student"
+
+
+class GraphNodeOut(BaseModel):
+    id: str
+    title: str
+    type: str = "Concept"
+    status: str = "stable"
+    trust_tier: str = "unverified"
+
+
+class GraphEdgeOut(BaseModel):
+    source: str
+    target: str
+
+
+class KnowledgeGraphOut(BaseModel):
+    nodes: List[GraphNodeOut]
+    edges: List[GraphEdgeOut]
 
 
 class FileOut(BaseModel):
@@ -135,6 +185,7 @@ class ChunkOut(BaseModel):
     page_number: int
     chunk_index: int
     score: Optional[float] = None
+    doc_slug: Optional[str] = None
 
 
 class StatusOut(BaseModel):

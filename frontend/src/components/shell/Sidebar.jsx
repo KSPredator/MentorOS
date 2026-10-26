@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,6 +14,7 @@ import {
   Sun,
   Moon,
   Radio,
+  GraduationCap,
 } from 'lucide-react';
 import { useChat } from '../../stores/chat';
 import { useUI } from '../../stores/ui';
@@ -47,7 +48,15 @@ export default function Sidebar() {
   const confirm = useUI((s) => s.confirm);
   const fileCount = useFiles((s) => s.files.length);
   const ollama = useStatus((s) => s.ollama_available);
+  const courses = useChat((s) => s.courses);
+  const activeCourseId = useChat((s) => s.activeCourseId);
+  const setCourse = useChat((s) => s.setCourse);
+  const loadCourses = useChat((s) => s.loadCourses);
   const [historyOpen, setHistoryOpen] = useState(true);
+
+  useEffect(() => {
+    loadCourses();
+  }, [loadCourses]);
 
   const grouped = groupSessions(sessions);
 
@@ -103,8 +112,33 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* New chat */}
+      {/* Course Selector */}
       <div className="px-3 pt-3">
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-panelHover/60 border border-border/70 text-xs">
+          <GraduationCap size={15} className="text-accent flex-shrink-0" />
+          <select
+            value={activeCourseId}
+            onChange={(e) => setCourse(e.target.value)}
+            className="w-full bg-transparent text-textMain text-[12px] font-medium focus:outline-none cursor-pointer truncate"
+            title="Active Course"
+          >
+            {courses.length > 0 ? (
+              courses.map((c) => (
+                <option key={c.course_id} value={c.course_id} className="bg-panel text-textMain">
+                  {c.name}
+                </option>
+              ))
+            ) : (
+              <option value="default" className="bg-panel text-textMain">
+                Default Course
+              </option>
+            )}
+          </select>
+        </div>
+      </div>
+
+      {/* New chat */}
+      <div className="px-3 pt-2">
         <button
           onClick={onNew}
           className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl

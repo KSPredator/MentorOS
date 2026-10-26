@@ -3,6 +3,7 @@ SQLite helpers for MentorOS API (Phase 9).
 Database: data/mentoros.db — tables: sessions, messages, files.
 """
 
+import hashlib
 import json
 import sqlite3
 import uuid
@@ -59,6 +60,19 @@ CREATE TABLE IF NOT EXISTS files (
     error        TEXT,
     uploaded_at  TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS chunks (
+    chunk_id     TEXT PRIMARY KEY,
+    source_file  TEXT NOT NULL,
+    doc_slug     TEXT NOT NULL,
+    page_number  INTEGER NOT NULL,
+    chunk_index  INTEGER NOT NULL,
+    text         TEXT NOT NULL,
+    token_count  INTEGER NOT NULL DEFAULT 0,
+    created_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source_file);
+CREATE INDEX IF NOT EXISTS idx_chunks_doc_slug ON chunks(doc_slug);
 """
 
 
@@ -66,6 +80,16 @@ def init_db(db_path: Optional[Path] = None) -> None:
     """Create tables if missing and mark orphaned 'processing' files as failed."""
     conn = get_conn(db_path)
     try:
+        cols = [c[1] for c in conn.execute("PRAGMA table_info(chunks)").fetchall()]
+        if cols:
+            if "doc_slug" not in cols:
+                conn.execute("ALTER TABLE chunks ADD COLUMN doc_slug TEXT NOT NULL DEFAULT ''")
+            if "page_number" not in cols:
+                conn.execute("ALTER TABLE chunks ADD COLUMN page_number INTEGER NOT NULL DEFAULT 1")
+            if "doc_id" in cols and "unit_no" in cols:
+                conn.execute("UPDATE chunks SET doc_slug = doc_id, page_number = unit_no WHERE doc_slug = ''")
+            conn.commit()
+
         conn.executescript(_SCHEMA)
         conn.execute(
             "UPDATE files SET status='failed', error='Interrupted by server restart' "
@@ -297,3 +321,223 @@ def count_indexed_files() -> int:
         return int(row["c"]) if row else 0
     finally:
         conn.close()
+
+
+# --------------------------------------------------------------------------- #
+# Chunks (Step 2: Stable chunk IDs and SQLite provenance table)
+# --------------------------------------------------------------------------- #
+
+def upsert_chunks(chunks: list) -> int:
+    """Upsert document chunks into SQLite chunks table for O(1) ID lookups."""
+    if not chunks:
+        return 0
+    conn = get_conn()
+    try:
+        now = _now()
+        cols = [c[1] for c in conn.execute("PRAGMA table_info(chunks)").fetchall()]
+        has_doc_id = "doc_id" in cols
+
+        # If relational documents table is present, ensure parent documents exist
+        if has_doc_id:
+            doc_table = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'").fetchone()
+            if doc_table:
+                course_table = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='courses'").fetchone()
+                if course_table:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO courses (course_id, name, bundle_path, embed_model, created_at) "
+                        "VALUES ('default', 'Default Course', 'bundle/default', 'all-MiniLM-L6-v2', ?)",
+                        (now,)
+                    )
+
+                doc_pairs = set()
+                for c in chunks:
+                    sfile = getattr(c, "source_file", "") or (c.get("source_file", "") if isinstance(c, dict) else "")
+                    slug = getattr(c, "doc_slug", "") or (
+                        c.metadata.get("doc_slug", "")
+                        if hasattr(c, "metadata") and isinstance(c.metadata, dict)
+                        else (c.get("doc_slug", "") or c.get("metadata", {}).get("doc_slug", "") if isinstance(c, dict) else "")
+                    ) or (sfile.rsplit(".", 1)[0].lower() if sfile else "default-doc")
+                    if slug:
+                        doc_pairs.add((slug, sfile))
+
+                for slug, sfile in doc_pairs:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO documents (doc_id, course_id, slug, filename, content_hash, version, status, created_at, updated_at) "
+                        "VALUES (?, 'default', ?, ?, 'hash', 1, 'indexed', ?, ?)",
+                        (slug, slug, sfile, now, now)
+                    )
+                conn.commit()
+
+        if has_doc_id:
+            records = []
+            for c in chunks:
+                if hasattr(c, "chunk_id"):
+                    cid = c.chunk_id
+                    sfile = c.source_file
+                    slug = getattr(c, "doc_slug", "") or (
+                        c.metadata.get("doc_slug", "")
+                        if hasattr(c, "metadata") and isinstance(c.metadata, dict)
+                        else ""
+                    ) or (sfile.rsplit(".", 1)[0].lower() if sfile else "default-doc")
+                    pnum = getattr(c, "page_number", 1)
+                    cidx = getattr(c, "chunk_index", 0)
+                    txt = getattr(c, "text", "")
+                    toks = getattr(c, "token_count", 0)
+                    doc_version = getattr(c, "doc_version", 1) or 1
+                    unit = getattr(c, "unit", "page") or "page"
+                    unit_no = getattr(c, "unit_no", pnum) or pnum
+                    thash = getattr(c, "text_hash", "") or hashlib.sha256(txt.strip().encode("utf-8")).hexdigest()
+                    legacy_id = getattr(c, "legacy_id", None)
+                elif isinstance(c, dict):
+                    cid = c.get("chunk_id", "")
+                    sfile = c.get("source_file", "")
+                    slug = c.get("doc_slug", "") or (
+                        c.get("metadata", {}).get("doc_slug", "")
+                        if isinstance(c.get("metadata"), dict)
+                        else ""
+                    ) or (sfile.rsplit(".", 1)[0].lower() if sfile else "default-doc")
+                    pnum = c.get("page_number", 1)
+                    cidx = c.get("chunk_index", 0)
+                    txt = c.get("text", "")
+                    toks = c.get("token_count", 0)
+                    doc_version = c.get("doc_version", 1) or 1
+                    unit = c.get("unit", "page") or "page"
+                    unit_no = c.get("unit_no", pnum) or pnum
+                    thash = c.get("text_hash", "") or hashlib.sha256(txt.strip().encode("utf-8")).hexdigest()
+                    legacy_id = c.get("legacy_id")
+                else:
+                    continue
+
+                records.append((
+                    cid, slug, int(doc_version), unit, int(unit_no), int(cidx),
+                    thash, txt, int(toks), sfile, legacy_id, now, slug, int(pnum)
+                ))
+
+            if not records:
+                return 0
+
+            conn.executemany(
+                """
+                INSERT INTO chunks (
+                    chunk_id, doc_id, doc_version, unit, unit_no, chunk_index,
+                    text_hash, text, token_count, source_file, legacy_id, created_at,
+                    doc_slug, page_number
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(chunk_id) DO UPDATE SET
+                    doc_id=excluded.doc_id,
+                    doc_version=excluded.doc_version,
+                    unit=excluded.unit,
+                    unit_no=excluded.unit_no,
+                    chunk_index=excluded.chunk_index,
+                    text_hash=excluded.text_hash,
+                    text=excluded.text,
+                    token_count=excluded.token_count,
+                    source_file=excluded.source_file,
+                    legacy_id=excluded.legacy_id,
+                    created_at=excluded.created_at,
+                    doc_slug=excluded.doc_slug,
+                    page_number=excluded.page_number
+                """,
+                records,
+            )
+        else:
+            records = []
+            for c in chunks:
+                if hasattr(c, "chunk_id"):
+                    cid = c.chunk_id
+                    sfile = c.source_file
+                    slug = getattr(c, "doc_slug", "") or (
+                        c.metadata.get("doc_slug", "")
+                        if hasattr(c, "metadata") and isinstance(c.metadata, dict)
+                        else ""
+                    )
+                    pnum = c.page_number
+                    cidx = c.chunk_index
+                    txt = c.text
+                    toks = c.token_count
+                elif isinstance(c, dict):
+                    cid = c.get("chunk_id", "")
+                    sfile = c.get("source_file", "")
+                    slug = c.get("doc_slug", "") or (
+                        c.get("metadata", {}).get("doc_slug", "")
+                        if isinstance(c.get("metadata"), dict)
+                        else ""
+                    )
+                    pnum = c.get("page_number", 1)
+                    cidx = c.get("chunk_index", 0)
+                    txt = c.get("text", "")
+                    toks = c.get("token_count", 0)
+                else:
+                    continue
+
+                records.append((cid, sfile, slug, int(pnum), int(cidx), txt, int(toks), now))
+
+            if not records:
+                return 0
+
+            conn.executemany(
+                """
+                INSERT INTO chunks (chunk_id, source_file, doc_slug, page_number, chunk_index, text, token_count, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(chunk_id) DO UPDATE SET
+                    source_file=excluded.source_file,
+                    doc_slug=excluded.doc_slug,
+                    page_number=excluded.page_number,
+                    chunk_index=excluded.chunk_index,
+                    text=excluded.text,
+                    token_count=excluded.token_count,
+                    created_at=excluded.created_at
+                """,
+                records,
+            )
+
+        conn.commit()
+        return len(records)
+    finally:
+        conn.close()
+
+
+def get_chunk_by_id(chunk_id: str) -> Optional[dict]:
+    """Look up a single chunk by its stable ID directly from SQLite."""
+    conn = get_conn()
+    try:
+        row = conn.execute("SELECT * FROM chunks WHERE chunk_id = ?", (chunk_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def delete_chunks_by_source(source_file: str) -> int:
+    """Delete all chunks belonging to a source file."""
+    conn = get_conn()
+    try:
+        cur = conn.execute("DELETE FROM chunks WHERE source_file = ?", (source_file,))
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
+def list_chunks_by_source(source_file: str) -> list[dict]:
+    """Retrieve all chunks for a source file ordered by page and chunk index."""
+    conn = get_conn()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM chunks WHERE source_file = ? ORDER BY page_number ASC, chunk_index ASC",
+            (source_file,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def count_chunks() -> int:
+    """Return total number of chunks stored in SQLite."""
+    conn = get_conn()
+    try:
+        row = conn.execute("SELECT COUNT(*) AS c FROM chunks").fetchone()
+        return int(row["c"]) if row else 0
+    finally:
+        conn.close()
+

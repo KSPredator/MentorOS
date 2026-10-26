@@ -11,6 +11,9 @@ export const useChat = create((set, get) => ({
   sessions: [],
   sessionsLoaded: false,
   activeId: null,
+  activeCourseId: 'default',
+  courses: [],
+  coursesLoaded: false,
   messages: [],
   messagesLoading: false,
 
@@ -23,6 +26,19 @@ export const useChat = create((set, get) => ({
   streamEvaluation: null,
   streamError: null,
   abortFn: null,
+
+  loadCourses: async () => {
+    try {
+      const courses = await api.get('/api/courses');
+      set({ courses: courses || [], coursesLoaded: true });
+    } catch {
+      set({ courses: [{ course_id: 'default', name: 'Default Course' }], coursesLoaded: true });
+    }
+  },
+
+  setCourse: (courseId) => {
+    set({ activeCourseId: courseId });
+  },
 
   loadSessions: async () => {
     try {
@@ -106,7 +122,7 @@ export const useChat = create((set, get) => ({
     }));
 
     const abortFn = streamAsk(
-      { message, session_id: get().activeId },
+      { message, session_id: get().activeId, course_id: get().activeCourseId },
       {
         onMeta: (d) => {
           set({

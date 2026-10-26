@@ -17,16 +17,18 @@ DATA_DIR = BASE_DIR / "data"
 DB_PATH = DATA_DIR / "mentoros.db"            # sessions / messages / files (new)
 MEMORY_DB_PATH = DATA_DIR / "learning_memory.db"  # Phase 6 learning memory (existing)
 
-# Chroma collection (must match embeddings defaults)
-CHROMA_COLLECTION = "mentoros_collection"
-
-# Evaluation gate
-EVAL_THRESHOLD = 0.60
-
 # Uploads
 import os
 MAX_UPLOAD_MB = int(os.getenv("MENTOROS_MAX_UPLOAD_MB", "500"))
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
+
+# Evaluation gate
+EVAL_THRESHOLD = 0.60
+
+# OKF & Collections (Step 2 feature flag & collection isolation)
+USE_OKF = os.getenv("USE_OKF", "false").lower() in ("true", "1", "yes")
+CHROMA_COLLECTION = os.getenv("MENTOROS_CHROMA_COLLECTION", "mentoros_collection")
+OKF_COLLECTION = os.getenv("MENTOROS_OKF_COLLECTION", "mentoros_okf_collection")
 
 # CORS — Vite dev server
 CORS_ORIGINS = [

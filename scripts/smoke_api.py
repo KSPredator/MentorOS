@@ -109,6 +109,15 @@ def main():
     st, files = _call(base, "GET", "/api/files")
     check("GET /api/files list", st == 200 and isinstance(files, list), f"{len(files)} file(s)")
 
+    st, courses = _call(base, "GET", "/api/courses")
+    check("GET /api/courses list", st == 200 and isinstance(courses, list), f"{len(courses)} course(s)")
+
+    st, bundle = _call(base, "GET", "/api/bundle")
+    check("GET /api/bundle overview", st == 200 and isinstance(bundle, dict), f"concepts={len(bundle.get('concepts', []))}")
+
+    st, graph = _call(base, "GET", "/api/graph")
+    check("GET /api/graph nodes", st == 200 and isinstance(graph, dict) and "nodes" in graph, f"nodes={len(graph.get('nodes', []))}")
+
     st, _ = _call(base, "GET", "/api/chunks/missing-chunk-000")
     # 503 = pipeline deps missing (degraded); 404 = ready but unknown chunk id.
     check("GET /api/chunks/{id} -> 503 degraded or 404 miss", st in (503, 404), f"HTTP {st}")

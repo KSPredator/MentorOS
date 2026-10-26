@@ -46,7 +46,13 @@ so it can search their uploaded documents (e.g. start with "Explain…")."""
 class Orchestrator:
     """Routes a user message through the multi-agent pipeline."""
 
-    def ask(self, message: str, session_id: Optional[str] = None, emit: Emit = None) -> dict:
+    def ask(
+        self,
+        message: str,
+        session_id: Optional[str] = None,
+        emit: Emit = None,
+        course_id: str = "default",
+    ) -> dict:
         start = time.time()
         message = (message or "").strip()
         if not message:
@@ -84,7 +90,7 @@ class Orchestrator:
         # ---- 3. Dispatch ----
         result: dict
         if action == "RETRIEVE":
-            result = self._handle_retrieve(message, session_id, emit=_emit)
+            result = self._handle_retrieve(message, session_id, emit=_emit, course_id=course_id)
         elif action == "MEMORY":
             result = self._handle_memory(session_id, emit=_emit)
         elif action == "QUIZ":
@@ -135,6 +141,10 @@ class Orchestrator:
             "memory_stats": result.get("memory_stats"),
             "is_refusal": result.get("is_refusal", False),
             "model_name": client.model_name,
+            "path": result.get("path", "rag"),
+            "trust_tier": result.get("trust_tier", "unverified"),
+            "concept_ids": result.get("concept_ids", []),
+            "course_id": course_id,
         }
         asst_msg = db.add_message(session_id, "assistant", result.get("content", ""), meta=meta)
 
@@ -157,12 +167,24 @@ class Orchestrator:
     # Handlers                                                            #
     # ------------------------------------------------------------------ #
 
-    def _handle_retrieve(self, message: str, session_id: str, emit: Emit = None) -> dict:
+    def _handle_retrieve(
+        self,
+        message: str,
+        session_id: str,
+        emit: Emit = None,
+        course_id: str = "default",
+    ) -> dict:
         _emit = emit or (lambda *args, **kwargs: None)
         rag = pipeline.get_rag()
 
         _emit("stage", {"stage": "retrieving"})
-        chunks = rag.vector_store.retrieve(message, k=rag.top_k)
+        from llm.hybrid_retriever import HybridRetriever
+        retriever = HybridRetriever(raw_vector_store=rag.vector_store)
+        retrieval_res = retriever.retrieve(message, course_id=course_id, k=rag.top_k)
+        chunks = retrieval_res.chunks
+        path = retrieval_res.path
+        trust_tier = retrieval_res.trust_tier
+        concept_ids = retrieval_res.concept_ids
 
         if not chunks:
             evaluation = {
@@ -182,6 +204,9 @@ class Orchestrator:
                 "evaluation": evaluation,
                 "is_refusal": True,
                 "memory_updates": [],
+                "path": path,
+                "trust_tier": trust_tier,
+                "concept_ids": concept_ids,
             }
 
         # Format context exactly like BaselineRAG
@@ -218,6 +243,8 @@ class Orchestrator:
             answer=raw_answer,
             retrieved_chunks=chunks,
             threshold=rag.eval_threshold,
+            path=path,
+            trust_tier=trust_tier,
         )
         evaluation = {
             "passed_gate": ev.passed_gate,
@@ -234,6 +261,7 @@ class Orchestrator:
                 "page_number": c.page_number,
                 "chunk_id": c.chunk_id,
                 "score": c.score,
+                "doc_slug": getattr(c, "doc_slug", ""),
             }
             for c in chunks
         ]
@@ -244,6 +272,7 @@ class Orchestrator:
                 "page_number": c.page_number,
                 "score": c.score,
                 "text_preview": c.text[:240],
+                "doc_slug": getattr(c, "doc_slug", ""),
             }
             for c in chunks
         ]
@@ -251,7 +280,7 @@ class Orchestrator:
         # Phase 6 wiring: update learning memory from gate outcome
         memory_updates = []
         try:
-            topic = topic_extractor.extract(message, ollama_client=rag.ollama_client)
+            topic = concept_ids[0] if concept_ids else topic_extractor.extract(message, ollama_client=rag.ollama_client)
             store = pipeline.get_memory_store(session_id)
             if ev.passed_gate:
                 rec = store.update(topic, eval_confidence=ev.confidence_score)
@@ -271,6 +300,9 @@ class Orchestrator:
             "evaluation": evaluation,
             "is_refusal": not passed,
             "memory_updates": memory_updates,
+            "path": path,
+            "trust_tier": trust_tier,
+            "concept_ids": concept_ids,
         }
 
     def _handle_memory(self, session_id: str, emit: Emit = None) -> dict:

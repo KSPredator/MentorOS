@@ -19,6 +19,7 @@ uvicorn[standard]
 python-multipart
 aiofiles
 sse-starlette
+alembic
 
 # ---- Phase 7 (optional): LoRA / QLoRA fine-tuning ----
 # peft

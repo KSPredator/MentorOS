@@ -27,6 +27,7 @@ class RetrievedChunk:
     chunk_index: int
     score: float  # Cosine similarity score (0.0 to 1.0, higher is better)
     metadata: dict
+    doc_slug: str = ""
 
 
 class VectorStore:
@@ -66,13 +67,20 @@ class VectorStore:
         metadatas: List[dict] = []
 
         for c in chunks:
+            slug = getattr(c, "doc_slug", "") or (
+                c.metadata.get("doc_slug", "")
+                if hasattr(c, "metadata") and isinstance(c.metadata, dict)
+                else ""
+            )
             ids.append(c.chunk_id)
             documents.append(c.text)
             metadatas.append({
                 "source_file": c.source_file,
+                "doc_slug": slug,
                 "page_number": int(c.page_number),
                 "chunk_index": int(c.chunk_index),
                 "token_count": int(c.token_count),
+                "chunk_id": c.chunk_id,
             })
 
         embeddings = self.embedder.embed_documents(documents)
@@ -128,6 +136,7 @@ class VectorStore:
                     chunk_index=int(meta.get("chunk_index", 0)),
                     score=round(similarity, 4),
                     metadata=meta,
+                    doc_slug=meta.get("doc_slug", ""),
                 )
             )
 

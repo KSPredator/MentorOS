@@ -7,7 +7,7 @@ import { ShieldCheck, ShieldAlert, Loader2, Info, CheckCircle2 } from 'lucide-re
  * { passed_gate, confidence_score, faithfulness_score,
  *   semantic_similarity, reasoning, threshold_used }
  */
-export default function EvaluationBadge({ evaluation, live = false }) {
+export default function EvaluationBadge({ evaluation, path = 'rag', trustTier = 'unverified', live = false }) {
   if (!evaluation) return null;
   const {
     passed_gate,
@@ -27,9 +27,17 @@ export default function EvaluationBadge({ evaluation, live = false }) {
   }
 
   const pass = Boolean(passed_gate);
+  const isOkf = path === 'okf';
   const Icon = pass ? ShieldCheck : ShieldAlert;
   const color = pass ? 'var(--color-success)' : 'var(--color-danger)';
   const bg = pass ? 'var(--color-successSoft)' : 'var(--color-dangerSoft)';
+
+  const trustLabels = {
+    'human-reviewed': { label: 'Human-reviewed OKF Concept', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+    'machine-confirmed': { label: 'Machine-confirmed Concept', color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10' },
+    'unverified': { label: 'Document Grounded', color: 'text-textMuted border-border bg-panel' },
+  };
+  const trustBadge = trustLabels[trustTier] || trustLabels['unverified'];
 
   return (
     <motion.div
@@ -42,9 +50,14 @@ export default function EvaluationBadge({ evaluation, live = false }) {
         <Icon size={14} />
         <span>
           {pass
-            ? 'Verified against sources'
+            ? (isOkf ? 'Grounding Confirmed · OKF Knowledge Graph' : 'Verified against sources')
             : 'Not verified — answer withheld'}
         </span>
+        {isOkf && (
+          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ml-1 ${trustBadge.color}`}>
+            {trustBadge.label}
+          </span>
+        )}
         <span className="font-mono ml-auto opacity-80">
           {typeof confidence_score === 'number' && `${Math.round(confidence_score * 100)}%`}
           {threshold_used != null &&
@@ -62,7 +75,9 @@ export default function EvaluationBadge({ evaluation, live = false }) {
       {pass && (
         <div className="flex items-center gap-1 mt-1.5 text-[11px] text-success font-medium">
           <CheckCircle2 size={11} />
-          Shown after passing the hallucination gate.
+          {isOkf
+            ? 'Grounding verified against curated concept bundle and verified source chunks.'
+            : 'Shown after passing the hallucination gate.'}
         </div>
       )}
     </motion.div>

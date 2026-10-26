@@ -7,7 +7,7 @@ from typing import List, Union
 from pathlib import Path
 
 from ingestion.parser import DocumentParser, ParsedPage, parse_document
-from ingestion.chunker import TextChunker, DocumentChunk, chunk_document
+from ingestion.chunker import TextChunker, DocumentChunk, chunk_document, slugify
 
 
 def ingest_file(
@@ -31,5 +31,6 @@ __all__ = [
     "TextChunker",
     "DocumentChunk",
     "chunk_document",
+    "slugify",
     "ingest_file",
 ]

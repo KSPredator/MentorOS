@@ -1,0 +1,5 @@
+{"id": "q1", "question": "What is engineering scientific software?", "answerable": true, "expected_source": "module1.pdf", "expected_keywords": ["automotive", "stress analysis", "molecular biology"]}
+{"id": "q2", "question": "What algorithms does Dijkstra use in packet switched networks?", "answerable": true, "expected_source": "module1.pdf", "expected_keywords": ["dijkstra", "routing"]}
+{"id": "q3", "question": "What is the quantum teleportation protocol in space shuttle orbital dynamics?", "answerable": false, "expected_source": null, "expected_keywords": []}
+{"id": "q4", "question": "Explain how data models function in machine learning applications.", "answerable": true, "expected_source": "oceanofpdfcom-ai-engineering", "expected_keywords": ["machine learning", "applications"]}
+{"id": "q5", "question": "Who was the Roman emperor during the invention of modern GPU virtual memory?", "answerable": false, "expected_source": null, "expected_keywords": []}

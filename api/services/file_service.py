@@ -65,6 +65,7 @@ def ingest_upload(filename: str, data: bytes) -> Dict:
         if existing:
             store = pipeline.get_vector_store()
             store.collection.delete(where={"source_file": safe_name})
+            db.delete_chunks_by_source(safe_name)
 
         from ingestion import ingest_file  # type: ignore
 
@@ -75,6 +76,9 @@ def ingest_upload(filename: str, data: bytes) -> Dict:
         if count == 0:
             db.update_file_status(safe_name, "failed", 0, "No text could be extracted.")
             raise FileValidationError("No text could be extracted from this file.", status_code=422)
+
+        # Store in SQLite chunks table for O(1) stable lookup and provenance
+        db.upsert_chunks(chunks)
 
         db.update_file_status(safe_name, "indexed", count)
         logger.info(f"Indexed {safe_name}: {count} chunks")
@@ -88,7 +92,7 @@ def ingest_upload(filename: str, data: bytes) -> Dict:
 
 
 def delete_file(filename: str) -> bool:
-    """Remove chunks from Chroma, file from disk, row from SQLite."""
+    """Remove chunks from Chroma and SQLite, file from disk, row from SQLite."""
     safe_name = Path(filename).name
     row = db.get_file(safe_name)
     if row is None:
@@ -100,6 +104,12 @@ def delete_file(filename: str) -> bool:
             store.collection.delete(where={"source_file": safe_name})
         except Exception as e:
             logger.warning(f"Chroma delete failed for {safe_name}: {e}")
+
+    # Remove from SQLite chunks table
+    try:
+        db.delete_chunks_by_source(safe_name)
+    except Exception as e:
+        logger.warning(f"SQLite chunks delete failed for {safe_name}: {e}")
 
     path = config.UPLOAD_DIR / safe_name
     if path.exists():
@@ -122,20 +132,39 @@ def delete_all_files() -> int:
 
 
 def get_chunk(chunk_id: str) -> Optional[dict]:
-    """Fetch one chunk by id for citation click-through preview."""
-    pipeline.ensure_ready()
-    store = pipeline.get_vector_store()
-    res = store.collection.get(ids=[chunk_id], include=["documents", "metadatas"])
-    if not res or not res.get("ids"):
-        return None
-    meta = (res.get("metadatas") or [{}])[0] or {}
-    return {
-        "chunk_id": res["ids"][0],
-        "text": (res.get("documents") or [""])[0],
-        "source_file": meta.get("source_file", "unknown"),
-        "page_number": int(meta.get("page_number", 1)),
-        "chunk_index": int(meta.get("chunk_index", 0)),
-    }
+    """Fetch one chunk by id for citation click-through preview.
+    Queries SQLite chunks table first (O(1)), falls back to ChromaDB for legacy chunks.
+    """
+    row = db.get_chunk_by_id(chunk_id)
+    if row:
+        return {
+            "chunk_id": row["chunk_id"],
+            "text": row["text"],
+            "source_file": row["source_file"],
+            "page_number": int(row["page_number"]),
+            "chunk_index": int(row["chunk_index"]),
+            "doc_slug": row.get("doc_slug", ""),
+        }
+
+    # Fallback to ChromaDB for backward compatibility
+    if pipeline.pipeline_ready():
+        try:
+            store = pipeline.get_vector_store()
+            res = store.collection.get(ids=[chunk_id], include=["documents", "metadatas"])
+            if res and res.get("ids"):
+                meta = (res.get("metadatas") or [{}])[0] or {}
+                return {
+                    "chunk_id": res["ids"][0],
+                    "text": (res.get("documents") or [""])[0],
+                    "source_file": meta.get("source_file", "unknown"),
+                    "page_number": int(meta.get("page_number", 1)),
+                    "chunk_index": int(meta.get("chunk_index", 0)),
+                    "doc_slug": meta.get("doc_slug", ""),
+                }
+        except Exception as e:
+            logger.warning(f"Chroma get_chunk fallback failed for {chunk_id}: {e}")
+
+    return None
 
 
 def list_files_out() -> List[dict]:

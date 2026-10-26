@@ -59,7 +59,13 @@ def delete_session(session_id: str):
 @router.post("/ask")
 def ask(body: AskRequest):
     try:
-        result = _orchestrator.ask(body.message, session_id=body.session_id, emit=None)
+        course_id = body.course_id or "default"
+        result = _orchestrator.ask(
+            body.message,
+            session_id=body.session_id,
+            emit=None,
+            course_id=course_id,
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -94,13 +100,19 @@ def ask_stream(body: AskRequest):
     q: "queue.Queue" = queue.Queue(maxsize=512)
     session_id = body.session_id
     message = body.message
+    course_id = body.course_id or "default"
 
     def _emit(name: str, data: dict) -> None:
         q.put((name, data))
 
     def _run() -> None:
         try:
-            _orchestrator.ask(message, session_id=session_id, emit=_emit)
+            _orchestrator.ask(
+                message,
+                session_id=session_id,
+                emit=_emit,
+                course_id=course_id,
+            )
         except Exception as e:
             try:
                 q.put(("error", {"message": str(e)}))

@@ -58,7 +58,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 # Routers (import after app creation to keep module load order clear)
-from api.routers import chat, files, memory, podcast, reflection, system  # noqa: E402
+from api.routers import chat, files, memory, podcast, reflection, system, courses, bundle  # noqa: E402
 
 app.include_router(system.router, prefix="/api", tags=["system"])
 app.include_router(files.router, prefix="/api", tags=["files"])
@@ -66,6 +66,8 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(memory.router, prefix="/api", tags=["memory"])
 app.include_router(reflection.router, prefix="/api", tags=["reflection"])
 app.include_router(podcast.router, prefix="/api", tags=["podcast"])
+app.include_router(courses.router, prefix="/api", tags=["courses"])
+app.include_router(bundle.router, prefix="/api", tags=["bundle"])
 # Include root podcast router for backward compatibility
 app.include_router(podcast.router, tags=["podcast"])
 

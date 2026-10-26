@@ -99,7 +99,13 @@ export default function AssistantMessage({ message }) {
 
         {((meta.citations && meta.citations.length > 0) || meta.evaluation) && (
           <motion.div {...fadeInUp} className="mt-3.5 space-y-2.5">
-            {meta.evaluation && <EvaluationBadge evaluation={meta.evaluation} />}
+            {meta.evaluation && (
+              <EvaluationBadge
+                evaluation={meta.evaluation}
+                path={meta.path || 'rag'}
+                trustTier={meta.trust_tier || 'unverified'}
+              />
+            )}
             {meta.citations && meta.citations.length > 0 && (
               <CitationList citations={meta.citations} />
             )}
@@ -183,6 +189,16 @@ function Avatar() {
 
 function MetaChips({ meta }) {
   const chips = [];
+  if (meta?.path === 'okf') {
+    chips.push(
+      <span
+        key="path"
+        className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center gap-1"
+      >
+        OKF Knowledge Graph
+      </span>,
+    );
+  }
   if (meta?.route_method) {
     chips.push(
       <span

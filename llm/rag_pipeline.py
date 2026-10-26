@@ -35,6 +35,7 @@ class Citation:
     page_number: int
     chunk_id: str
     score: float
+    doc_slug: str = ""
 
     def format_citation(self) -> str:
         return f"{self.source_file} (Page {self.page_number})"
@@ -160,6 +161,7 @@ class BaselineRAG:
                 page_number=c.page_number,
                 chunk_id=c.chunk_id,
                 score=c.score,
+                doc_slug=getattr(c, "doc_slug", ""),
             )
             for c in retrieved_chunks
         ]

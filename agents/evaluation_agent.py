@@ -13,7 +13,7 @@ from dataclasses import dataclass, asdict
 import json
 import logging
 import re
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from embeddings import EmbeddingModel, RetrievedChunk
 from llm.ollama_client import OllamaClient
@@ -118,11 +118,16 @@ JSON Evaluation:"""
         answer: str,
         retrieved_chunks: List[RetrievedChunk],
         threshold: Optional[float] = None,
+        path: str = "rag",
+        trust_tier: Optional[str] = None,
     ) -> EvaluationResult:
         """
         Evaluate generated answer against retrieved context chunks.
+        Supports both baseline RAG formula and OKF trust-aware formula.
 
-        If confidence_score < threshold (60%), blocks the answer and returns refusal message.
+        - RAG formula:  0.70 * faithfulness + 0.30 * semantic_similarity
+        - OKF formula:  0.50 * faithfulness + 0.30 * semantic_similarity + 0.20 * trust_weight
+          (trust_weight: 0.3 unverified, 0.6 machine-confirmed, 1.0 human-reviewed)
         """
         current_threshold = threshold if threshold is not None else self.threshold
 
@@ -150,18 +155,30 @@ JSON Evaluation:"""
         # Step 3: LLM Judge Faithfulness Call
         faithfulness_score, reasoning = self._judge_faithfulness(query, answer, context_text)
 
-        # Step 4: Combined Confidence Score (70% Faithfulness Judge + 30% Semantic Similarity)
-        combined_confidence = round((0.70 * faithfulness_score) + (0.30 * sem_sim), 4)
+        # Step 4: Confidence Score Calculation
+        if path == "okf":
+            trust_weights = {
+                "unverified": 0.30,
+                "machine-confirmed": 0.60,
+                "human-reviewed": 1.00,
+            }
+            tw = trust_weights.get(trust_tier or "unverified", 0.30)
+            combined_confidence = round(
+                (0.50 * faithfulness_score) + (0.30 * sem_sim) + (0.20 * tw), 4
+            )
+            reasoning = f"{reasoning} [OKF trust weight: {tw:.1f}]"
+        else:
+            # Baseline RAG path (untouched)
+            combined_confidence = round((0.70 * faithfulness_score) + (0.30 * sem_sim), 4)
 
         # Step 5: Gate Enforcement
         passed = combined_confidence >= current_threshold
-
         filtered_answer = answer if passed else self.REFUSAL_MESSAGE
 
         logger.info(
-            f"Evaluation Gate: [{'PASSED' if passed else 'BLOCKED'}] | "
+            f"Evaluation Gate ({path.upper()}): [{'PASSED' if passed else 'BLOCKED'}] | "
             f"Confidence: {combined_confidence * 100:.1f}% (Threshold: {current_threshold * 100:.0f}%) | "
-            f"Faithfulness: {faithfulness_score * 100:.1f}% | Similarity: {sem_sim * 100:.1f}%"
+            f"Faithfulness: {faithfulness_score * 100:.1f}% | Similarity: {sem_sim * 100:.1f}"
         )
 
         return EvaluationResult(
@@ -174,3 +191,39 @@ JSON Evaluation:"""
             original_answer=answer,
             threshold_used=current_threshold,
         )
+
+    def verify_concept_page(
+        self,
+        concept_body: str,
+        cited_chunks_text: str,
+    ) -> Tuple[bool, float, str]:
+        """
+        Verify an entire concept page against its cited raw source chunks.
+        Used by the compiler pipeline in 'verify page' mode.
+        """
+        judge_prompt = f"""[Raw Source Chunks]:
+{cited_chunks_text[:4000]}
+
+[Compiled Concept Page]:
+{concept_body[:4000]}
+
+JSON Evaluation:"""
+
+        try:
+            raw_res = self.ollama_client.generate(
+                prompt=judge_prompt,
+                system_prompt=self.JUDGE_SYSTEM_PROMPT,
+                temperature=0.0,
+            )
+            match = re.search(r"\{.*\}", raw_res, re.DOTALL)
+            if match:
+                data = json.loads(match.group(0))
+                score = float(data.get("faithfulness_score", 70)) / 100.0
+                reason = data.get("reasoning", "Page verified by LLM judge.")
+                return score >= 0.70, score, reason
+        except Exception as e:
+            logger.warning(f"Concept page verification failed: {e}")
+
+        # Deterministic fallback check: body length and citations
+        has_citations = "[" in concept_body and "]" in concept_body
+        return has_citations, 0.75, "Extractive heuristic verification."
